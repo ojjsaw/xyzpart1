@@ -1,6 +1,6 @@
 package bufmgr;
 
-public class hashtable {
+public class Hashtable {
 /*A simple hash table should be used to figure out what frame a given disk page occupies. The hash table should be implemented (entirely in main memory) by using an array of pointers to lists of  <page number, frame number > pairs.
  * The array is called the directory and each list of pairs is called a bucket.
  * Given a page number, you should apply a hash function to find the directory entry pointing to the bucket that contains the frame number for this page, if the page is in the buffer pool.
