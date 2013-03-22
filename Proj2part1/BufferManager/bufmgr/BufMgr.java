@@ -1,4 +1,9 @@
 package bufmgr;
+import java.io.IOException;
+
+import chainexception.ChainException;
+import diskmgr.*;
+import global.*;
 
 public class BufMgr {
 	 
@@ -12,8 +17,18 @@ public class BufMgr {
  * @param prefetchSize number of pages to be prefetched
  * @param replacementPolicy Name of the replacement policy
  */
-public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {};
- 
+	byte bufPool[][];
+	Descriptor bufDescr[];
+	int numbuf;
+	Hashtable ht = new Hashtable();
+	String replacementPolicy;
+public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
+	numbuf = numbufs;
+	bufPool = new byte[numbuf][GlobalConst.PAGE_SIZE];
+	bufDescr = new Descriptor[numbuf];
+	this.replacementPolicy = replacementPolicy;
+}
+
 /** 
 * Pin a page.
 * First check if this page is already in the buffer pool.
@@ -32,7 +47,19 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {};
 * @param page the pointer point to the page.
 * @param emptyPage true (empty page); false (non-empty page)
 */
- public void pinPage(PageId pageno, Page page, boolean emptyPage) {};
+ public void pinPage(PageId pageno, Page page, boolean emptyPage) {
+	int i = 0;
+	while(bufPool[i].equals(page) && i < numbuf){
+		i++;
+	}
+	if(i+1 != numbuf){
+		int frameno = ht.getFrameNumberFromBucket(pageno);
+		bufDescr[frameno].incrementPinCount();	
+	}
+	else{
+		
+	}
+ }
  
 /**
 * Unpin a page specified by a pageId.
@@ -49,8 +76,20 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {};
 *
 * @param pageno page number in the Minibase.
 * @param dirty the dirty bit of the frame
+ * @throws PageUnpinnedException 
 */
-public void unpinPage(PageId pageno, boolean dirty) {};
+public void unpinPage(PageId pageno, boolean dirty) throws PageUnpinnedException {
+	if(dirty){
+		int frameno = ht.getFrameNumberFromBucket(pageno);
+		bufDescr[frameno].setDirtyBit(true);
+		if(bufDescr[frameno].getPinCount() > 0){
+			bufDescr[frameno].decrementPinCount();
+		}
+		else{
+			throw new PageUnpinnedException(null, null);
+		}
+	}
+}
  
 /** 
 * Allocate new pages.
@@ -66,7 +105,28 @@ public void unpinPage(PageId pageno, boolean dirty) {};
 *
 * @return the first page id of the new pages.__ null, if error.
 */
-public PageId newPage(Page firstpage, int howmany) {};
+public PageId newPage(Page firstpage, int howmany) {
+	PageId pid = new PageId();
+	try {
+		Minibase.DiskManager.allocate_page(pid, howmany);
+	} catch (IOException | ChainException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	try{
+		this.pinPage(pid, firstpage, true);
+	}
+	catch(Exception e){
+		try {	
+			Minibase.DiskManager.deallocate_page(pid, howmany);
+		} catch (IOException | ChainException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return null;
+	}
+	return pid;
+}
  
 /**
 * This method should be called to delete a page that is on disk.
@@ -75,7 +135,14 @@ public PageId newPage(Page firstpage, int howmany) {};
 *
 * @param globalPageId the page number in the data base.
 */
-public void freePage(PageId globalPageId) {};
+public void freePage(PageId globalPageId) {
+	try {	
+		Minibase.DiskManager.deallocate_page(globalPageId);
+	} catch (ChainException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	}
+}
  
 /**
 * Used to flush a particular page of the buffer pool to disk.
@@ -83,22 +150,46 @@ public void freePage(PageId globalPageId) {};
 *
 * @param pageid the page number in the database.
 */
-public void flushPage(PageId pageid) {};
+public void flushPage(PageId pageid) {
+	int frameno = ht.getFrameNumberFromBucket(pageid);
+	Page page = new Page(bufPool[frameno]);
+	try {
+		Minibase.DiskManager.write_page(pageid, page);
+	} catch (InvalidPageNumberException | FileIOException | IOException e) {
+		e.printStackTrace();
+	}
+}
  
 /**
-* Used to flush all dirty pages in the buffer poll to disk
+* Used to flush all dirty pages in the buffer pool to disk
 *
 */
-public void flushAllPages() {};
+public void flushAllPages() {
+	for(int i = 0; i < numbuf; i++){
+		if(bufDescr[i].isDirty()){
+			this.flushPage(bufDescr[i].getPageNumber());
+		}
+	}
+}
  
 /**
 * Gets the total number of buffer frames.
 */
-public int getNumBuffers() {}
+public int getNumBuffers() {
+	return numbuf;
+}
  
 /**
 * Gets the total number of unpinned buffer frames.
 */
-public int getNumUnpinned() {}
+public int getNumUnpinned() {
+	int count = 0;
+	for(int i = 0; i < numbuf; i++){
+		if(bufDescr[i].getPinCount() == 0){
+			count++;
+		}
+	}
+	return count;
+}
  
 };
