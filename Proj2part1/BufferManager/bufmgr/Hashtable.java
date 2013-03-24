@@ -10,7 +10,7 @@ public class Hashtable {
 /*The hash function must distribute values in the domain of the search field uniformly over the collection of buckets. If we have HTSIZE buckets, numbered 0 through M-1, a hash function h of the form 
 h(value) = (a*value+b) mod HTSIZE
  works well in practice. HTSIZE should be chosen to be a prime number.*/
-	public static Bucket Directory[];
+	public Bucket Directory[];
 	
 	public Hashtable(){
 		Directory = new Bucket[HTSIZE];
@@ -20,7 +20,20 @@ h(value) = (a*value+b) mod HTSIZE
 		return (7*val+61)%HTSIZE;
 	}
 	
-	int getFrameNumberFromBucket(PageId pageNumber){
+	public int getFrameNumberFromBucket(PageId pageId){
+		// Look for page in the buffer pool
+		int hash = getHash(pageId.pid);
+		Bucket bucky = Directory[hash];
+		while(bucky != null){
+			if(bucky.getPageNumber().pid == pageId.pid){
+				return bucky.getFrameNumber();
+			}
+			bucky = bucky.getNextBucket();
+		}
+		return -1;
+	}
+	
+	/*int getFrameNumberFromBucket(PageId pageNumber){
 		Bucket b = Directory[getHash(pageNumber.pid)];
 		if (b == null){
 			return -1;
@@ -32,10 +45,16 @@ h(value) = (a*value+b) mod HTSIZE
 			b = b.getNextBucket();
 		}while(b.getNextBucket() != null);
 		return -2;
-	}
+	}*/
 	
 	int insertBucket(Bucket bucketToInsert){
-		Bucket b = Directory[getHash(bucketToInsert.getPageNumber().pid)];
+		int hash = getHash( bucketToInsert.getPageNumber().pid );
+		if(Directory[ hash ]!=null){
+			bucketToInsert.setNextBucket((Directory[ hash ].getNextBucket()));
+		}
+		Directory[ hash ] = bucketToInsert;
+		return 1;
+		/*Bucket b = Directory[getHash(bucketToInsert.getPageNumber().pid)];
 		if(b == null){
 			b = bucketToInsert;
 		}
@@ -44,8 +63,9 @@ h(value) = (a*value+b) mod HTSIZE
 				b = b.getNextBucket();
 			}
 			b.setNextBucket(bucketToInsert);
+			System.out.println("Bucket Inserted");
 		}
-		return 1;
+		return 1;*/
 	}
 	
 	Bucket removeBucket(Bucket bucketToRemove){

@@ -12,10 +12,11 @@ The PageId type is defined as an integer type in global package.*/
 	private int pinCount;
 	private PageId pageNumber;
 	private boolean dirtyBit;
-	
+			
 	public Descriptor(PageId pageNumber){
 		this.pageNumber = pageNumber;
 		dirtyBit = false;
+		pinCount = 1;
 	}
 	int getPinCount(){
 		return pinCount;
