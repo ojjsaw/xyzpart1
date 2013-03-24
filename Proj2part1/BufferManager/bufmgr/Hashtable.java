@@ -10,7 +10,11 @@ public class Hashtable {
 /*The hash function must distribute values in the domain of the search field uniformly over the collection of buckets. If we have HTSIZE buckets, numbered 0 through M-1, a hash function h of the form 
 h(value) = (a*value+b) mod HTSIZE
  works well in practice. HTSIZE should be chosen to be a prime number.*/
-	public static Bucket Directory[] = new Bucket[HTSIZE];
+	public static Bucket Directory[];
+	
+	public Hashtable(){
+		Directory = new Bucket[HTSIZE];
+	}
 	
 	int getHash(int val){
 		return (7*val+61)%HTSIZE;
@@ -27,7 +31,7 @@ h(value) = (a*value+b) mod HTSIZE
 			}
 			b = b.getNextBucket();
 		}while(b.getNextBucket() != null);
-		return -1;
+		return -2;
 	}
 	
 	int insertBucket(Bucket bucketToInsert){

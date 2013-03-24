@@ -381,7 +381,6 @@ class BMDriver extends TestDriver implements GlobalConst {
 				try {
 					Minibase.BufferManager.freePage( firstPid );
 				}
-
 				catch (ChainException e) {
 					status = checkException (e, "bufmgr.PagePinnedException");
 

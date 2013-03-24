@@ -20,13 +20,18 @@ public class BufMgr {
 	byte bufPool[][];
 	Descriptor bufDescr[];
 	int numbuf;
-	Hashtable ht = new Hashtable();
+	Hashtable ht;
 	String replacementPolicy;
+	clock clockArray[];
+	int clockPointer;
 public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
+	ht = new Hashtable();
 	numbuf = numbufs;
 	bufPool = new byte[numbuf][GlobalConst.PAGE_SIZE];
 	bufDescr = new Descriptor[numbuf];
 	this.replacementPolicy = replacementPolicy;
+	clockArray = new clock[numbuf];
+	clockPointer = 0;
 }
 
 /** 
@@ -46,18 +51,48 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
 * @param pageno page number in the Minibase.
 * @param page the pointer point to the page.
 * @param emptyPage true (empty page); false (non-empty page)
+ * @throws Exception 
 */
- public void pinPage(PageId pageno, Page page, boolean emptyPage) {
-	int i = 0;
+ public void pinPage(PageId pageno, Page page, boolean emptyPage) throws Exception {
+	/*int i = 0;
 	while(bufPool[i].equals(page) && i < numbuf){
 		i++;
 	}
-	if(i+1 != numbuf){
+	if(i+1 != numbuf){*/
+	if(ht.getHash(pageno.pid) > -1){
 		int frameno = ht.getFrameNumberFromBucket(pageno);
-		bufDescr[frameno].incrementPinCount();	
+		bufDescr[frameno].incrementPinCount();
+		page.setpage(bufPool[frameno]);
+		for(int j = 0; j < numbuf; j++){
+			if(clockArray[j].getFrameno() == frameno){
+				clockArray[clockPointer].setReplacementCandidateStatus(false);
+				break;
+			}
+		}
 	}
 	else{
-		
+		int count = 0;
+		while(clockArray[clockPointer].isReplacementCandidate() && count < numbuf){
+			count++;
+			clockPointer++;
+			if(clockPointer == numbuf){
+				clockPointer = 0;
+			}
+		}
+		if(bufDescr[clockArray[clockPointer].getFrameno()].isDirty()){
+			this.flushPage(bufDescr[clockArray[clockPointer].getFrameno()].getPageNumber());
+		}
+		if(count != numbuf){
+			try {
+				Minibase.DiskManager.read_page(pageno, page);
+			} catch (InvalidPageNumberException | FileIOException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else{
+			throw new Exception();
+		}
 	}
  }
  
@@ -83,7 +118,14 @@ public void unpinPage(PageId pageno, boolean dirty) throws PageUnpinnedException
 		int frameno = ht.getFrameNumberFromBucket(pageno);
 		bufDescr[frameno].setDirtyBit(true);
 		if(bufDescr[frameno].getPinCount() > 0){
-			bufDescr[frameno].decrementPinCount();
+			if(bufDescr[frameno].decrementPinCount() == 0){
+				if(bufDescr[clockArray[clockPointer].getFrameno()].isDirty()){
+					this.flushPage(bufDescr[clockArray[clockPointer].getFrameno()].getPageNumber());
+				}
+				clock c = new clock(frameno, false);
+				clockArray[clockPointer] = c;
+				clockPointer++;
+			}
 		}
 		else{
 			throw new PageUnpinnedException(null, null);
@@ -134,14 +176,10 @@ public PageId newPage(Page firstpage, int howmany) {
 * deallocate the page. 
 *
 * @param globalPageId the page number in the data base.
+ * @throws ChainException 
 */
-public void freePage(PageId globalPageId) {
-	try {	
+public void freePage(PageId globalPageId) throws ChainException {
 		Minibase.DiskManager.deallocate_page(globalPageId);
-	} catch (ChainException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	}
 }
  
 /**
