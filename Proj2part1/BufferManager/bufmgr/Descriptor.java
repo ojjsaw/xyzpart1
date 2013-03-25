@@ -32,9 +32,11 @@ The PageId type is defined as an integer type in global package.*/
 		return 1;
 	}
 	int incrementPinCount(){
-		return ++pinCount;
+		pinCount++;
+		return pinCount;
 	}
 	int decrementPinCount(){
-		return --pinCount;
+		pinCount--;
+		return pinCount;
 	}
 }

@@ -1,29 +1,54 @@
 package bufmgr;
 
 public class clock {
-	private int frameno;
+	private int referenceNumber;
+	private int frameNumber;
 	private boolean irc;
 	
-	public clock(int frameno, boolean irc){
-		this.frameno = frameno;
+	public clock(int frameNumber, int referenceNumber, boolean irc){
+		this.frameNumber = frameNumber;
+		this.referenceNumber = referenceNumber;
 		this.irc = irc;
 	}
 	
-	int getFrameno(){
-		return frameno;
+	int getReferenceNumber(){
+		return referenceNumber;
+	}
+	
+	int getFrameNumber(){
+		return referenceNumber;
+	}
+	
+	int setFrameNumber(int fn){
+		frameNumber = fn;
+		return 1;
 	}
 	
 	boolean isReplacementCandidate(){
 		return irc;
 	}
 	
-	int setFrameno(int val){
-		frameno = val;
+	int setReferenceNumber(int val){
+		referenceNumber = val;
 		return 1;
 	}
 	
 	int setReplacementCandidateStatus(boolean bool){
 		irc = bool;
 		return 1;
+	}
+	
+	static int leastRecentlyUsed(clock[] clockArray, int sizeOfArrays, int clockPointer){
+		int leastRecent;
+		do{
+			leastRecent = clockPointer;
+			for(int i = 0; i < sizeOfArrays; i++){
+				if(clockArray[i].getReferenceNumber() < leastRecent){
+					leastRecent = clockArray[i].getReferenceNumber();
+				}
+			}
+			clockArray[leastRecent].setReplacementCandidateStatus(true);
+		}while(!clockArray[leastRecent].isReplacementCandidate());	
+		return clockArray[leastRecent].frameNumber;
 	}
 }

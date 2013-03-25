@@ -33,61 +33,42 @@ h(value) = (a*value+b) mod HTSIZE
 		return -1;
 	}
 	
-	/*int getFrameNumberFromBucket(PageId pageNumber){
-		Bucket b = Directory[getHash(pageNumber.pid)];
+	int insertBucket(PageId pageNumber){
+		int hash = getHash(pageNumber.pid);
+		Bucket bucky = new Bucket(pageNumber, hash);
+		Bucket iter = Directory[hash];
+		if(Directory[hash]!= null){
+			while(iter.getNextBucket() != null){
+				iter = iter.getNextBucket();
+			}
+			iter.setNextBucket(bucky);
+			return 1;
+		}
+		Directory[hash] = bucky;
+		return 1;
+	}
+	
+	int removeBucket(PageId pageNumber){
+		int hash = getHash(pageNumber.pid);
+		Bucket b = Directory[hash];
 		if (b == null){
 			return -1;
 		}
-		do{
-			if(pageNumber.pid == b.getPageNumber().pid){
-				return b.getFrameNumber();
-			}
-			b = b.getNextBucket();
-		}while(b.getNextBucket() != null);
-		return -2;
-	}*/
-	
-	int insertBucket(Bucket bucketToInsert){
-		int hash = getHash( bucketToInsert.getPageNumber().pid );
-		if(Directory[ hash ]!=null){
-			bucketToInsert.setNextBucket((Directory[ hash ].getNextBucket()));
-		}
-		Directory[ hash ] = bucketToInsert;
-		return 1;
-		/*Bucket b = Directory[getHash(bucketToInsert.getPageNumber().pid)];
-		if(b == null){
-			b = bucketToInsert;
-		}
-		else{
-			while(b.getNextBucket() != null){
-				b = b.getNextBucket();
-			}
-			b.setNextBucket(bucketToInsert);
-			System.out.println("Bucket Inserted");
-		}
-		return 1;*/
-	}
-	
-	Bucket removeBucket(Bucket bucketToRemove){
-		Bucket b = Directory[getHash(bucketToRemove.getPageNumber().pid)];
-		if (b == null){
-			return null;
-		}
-		if(b.equals(bucketToRemove)){
+		if(b.getPageNumber().pid == pageNumber.pid){
 			if(b.getNextBucket() == null){
-				Directory[getHash(bucketToRemove.getPageNumber().pid)] = null;
-				return bucketToRemove;
+				Directory[hash] = null;
+				return 1;
 			}
-			Directory[getHash(bucketToRemove.getPageNumber().pid)] = b.getNextBucket();
-			return bucketToRemove;
+			Directory[hash] = b.getNextBucket();
+			return 1;
 		}
 		do{
-			if(b.getNextBucket().equals(bucketToRemove)){
+			if(b.getPageNumber().pid == pageNumber.pid){
 				b.setNextBucket(b.getNextBucket().getNextBucket());
-				return bucketToRemove;
+				return 1;
 			}
 			b = b.getNextBucket();
 		}while(b.getNextBucket() != null);
-		return null;
+		return -1;
 	}
 }

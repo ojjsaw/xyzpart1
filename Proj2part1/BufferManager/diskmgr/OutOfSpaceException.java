@@ -3,9 +3,9 @@ import chainexception.*;
 
 public class OutOfSpaceException extends ChainException {
 
-  public OutOfSpaceException(Exception e, String name)
+	public OutOfSpaceException(Exception e, String name)
     { 
-      super(e, name); 
+		super(e, name); 
     }
 }
 
