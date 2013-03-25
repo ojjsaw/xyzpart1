@@ -32,7 +32,8 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
 	this.replacementPolicy = replacementPolicy;
 	clockArray = new clock[numbuf];
 	for(int i = 0; i < numbuf; i++){
-		clockArray[i] = new clock(i, true);
+		clockArray[i] = new clock(i, false);
+		bufDescr[i] = new Descriptor(null);
 	}
 	clockPointer = 0;
 }
@@ -57,14 +58,12 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
  * @throws Exception 
 */
  public void pinPage(PageId pageno, Page page, boolean emptyPage) throws Exception {
-	/*int i = 0;
-	while(bufPool[i].equals(page) && i < numbuf){
-		i++;
-	}
-	if(i+1 != numbuf){*/
+	 
 	if(ht.getFrameNumberFromBucket(pageno) > -1){
 		int frameno = ht.getFrameNumberFromBucket(pageno);
 		bufDescr[frameno].incrementPinCount();
+		
+		//Clock Buffer Management
 		if(bufDescr[frameno].getPinCount() == 0){
 			clockArray[frameno].setReplacementCandidateStatus(true);
 		}
@@ -72,23 +71,19 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
 			clockArray[frameno].setReplacementCandidateStatus(false);
 		}
 		
-		page.setpage(bufPool[frameno]);
-		try{
-			//SystemDefs.JavabaseDB.read_page(pid,newp);
-			Minibase.DiskManager.read_page(pageno,page);
-		}catch(Exception e){ 
-			System.out.println(e.toString());
-		}
-		for(int j = 0; j < numbuf; j++){
-			if(clockArray[j].getFrameno() == frameno){
-				clockArray[clockPointer].setReplacementCandidateStatus(false);
-				break;
-			}
+		int data = 0;
+		try {
+			data = Convert.getIntValue (0, page.getpage());
+			System.out.println("pinPage["+pageno.pid+", " + frameno +"] = " + data);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	else{
-		if(bufDescr[clockArray[clockPointer].getFrameno()] != null && bufDescr[clockArray[clockPointer].getFrameno()].isDirty()){
+		if(bufDescr[clockArray[clockPointer].getFrameno()].isDirty()){
 			this.flushPage(bufDescr[clockArray[clockPointer].getFrameno()].getPageNumber());
+			System.out.println("Flushed " + clockPointer);
 		}
 		try {
 			Minibase.DiskManager.read_page(pageno, page);
@@ -128,11 +123,7 @@ public void unpinPage(PageId pageno, boolean dirty) throws Exception {
 		bufDescr[frameno].setDirtyBit(true);	
 		if(bufDescr[frameno].getPinCount() > 0){
 			if(bufDescr[frameno].decrementPinCount() == 0){
-					clockArray[frameno].setReplacementCandidateStatus(true);
-				//System.out.println("Clock Pointer " + clockPointer + "pageno " + pageno.pid);
-				if(bufDescr[clockArray[clockPointer].getFrameno()].isDirty()){
-					this.flushPage(bufDescr[clockArray[clockPointer].getFrameno()].getPageNumber());
-				}
+				clockArray[frameno].setReplacementCandidateStatus(true);
 				clock c = new clock(frameno, false);
 				clockArray[clockPointer] = c;
 			}
