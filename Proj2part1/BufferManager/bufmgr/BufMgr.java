@@ -58,8 +58,8 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
  * @throws Exception 
 */
  public void pinPage(PageId pageno, Page page, boolean emptyPage) throws Exception {
-	 
-	if(ht.getFrameNumberFromBucket(pageno) > -1){
+		 //throw new BufferPoolExceededException(null,null);
+	 if(ht.getFrameNumberFromBucket(pageno) > -1){
 		int frameno = ht.getFrameNumberFromBucket(pageno);
 		bufDescr[frameno].incrementPinCount();
 		
@@ -70,27 +70,12 @@ public BufMgr(int numbufs, int prefetchSize, String replacementPolicy) {
 		else{
 			clockArray[frameno].setReplacementCandidateStatus(false);
 		}
-		
-		int data = 0;
-		try {
-			data = Convert.getIntValue (0, page.getpage());
-			System.out.println("pinPage["+pageno.pid+", " + frameno +"] = " + data);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 	else{
 		if(bufDescr[clockArray[clockPointer].getFrameno()].isDirty()){
 			this.flushPage(bufDescr[clockArray[clockPointer].getFrameno()].getPageNumber());
-			System.out.println("Flushed " + clockPointer);
 		}
-		try {
-			Minibase.DiskManager.read_page(pageno, page);
-		} catch (InvalidPageNumberException | FileIOException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		Minibase.DiskManager.read_page(pageno, page);
 		Bucket bucky = new Bucket(pageno, clockArray[clockPointer].getFrameno());
 		ht.insertBucket(bucky);
 		bufDescr[clockArray[clockPointer].getFrameno()] = new Descriptor(pageno);
@@ -150,27 +135,12 @@ public void unpinPage(PageId pageno, boolean dirty) throws Exception {
 * @param howmany total number of allocated new pages.
 *
 * @return the first page id of the new pages.__ null, if error.
+ * @throws Exception 
 */
-public PageId newPage(Page firstpage, int howmany) {
+public PageId newPage(Page firstpage, int howmany) throws Exception {
 	PageId pid = new PageId();
-	try {
 		Minibase.DiskManager.allocate_page(pid, howmany);
-	} catch (IOException | ChainException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-	try{
 		this.pinPage(pid, firstpage, true);
-	}
-	catch(Exception e){
-		try {	
-			Minibase.DiskManager.deallocate_page(pid, howmany);
-		} catch (IOException | ChainException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		return null;
-	}
 	return pid;
 }
  
@@ -191,24 +161,26 @@ public void freePage(PageId globalPageId) throws ChainException {
 * This method calls the write_page method of the diskmgr package.
 *
 * @param pageid the page number in the database.
+ * @throws IOException 
+ * @throws FileIOException 
+ * @throws InvalidPageNumberException 
 */
-public void flushPage(PageId pageid) {
+public void flushPage(PageId pageid) throws InvalidPageNumberException, FileIOException, IOException {
 	int frameno = ht.getFrameNumberFromBucket(pageid);
 	if(frameno > -1){
 		Page page = new Page(bufPool[frameno]);
-		try {
 			Minibase.DiskManager.write_page(pageid, page);
-		} catch (InvalidPageNumberException | FileIOException | IOException e) {
-			e.printStackTrace();
-		}
 	}
 }
  
 /**
 * Used to flush all dirty pages in the buffer pool to disk
+ * @throws IOException 
+ * @throws FileIOException 
+ * @throws InvalidPageNumberException 
 *
 */
-public void flushAllPages() {
+public void flushAllPages() throws InvalidPageNumberException, FileIOException, IOException {
 	for(int i = 0; i < numbuf; i++){
 		if(bufDescr[i].isDirty()){
 			this.flushPage(bufDescr[i].getPageNumber());
