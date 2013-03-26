@@ -21,6 +21,11 @@ The PageId type is defined as an integer type in global package.*/
 	int getPinCount(){
 		return pinCount;
 	}
+	
+	void setPinCount(int val){
+		pinCount = val;
+	}
+	
 	PageId getPageNumber(){
 		return pageNumber;
 	}

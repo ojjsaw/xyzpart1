@@ -111,12 +111,12 @@ class BMDriver extends TestDriver implements GlobalConst {
 		//The following runs all the test functions 
 
 		//Running test1() to test6()
-		if (!test1()) { _passAll = FAIL; }    
+		//if (!test1()) { _passAll = FAIL; }    
 		if (!test2()) { _passAll = FAIL; }
 		if (!test3()) { _passAll = FAIL; }
-		if (!test4()) { _passAll = FAIL; }
-		if (!test5()) { _passAll = FAIL; }
-		if (!test6()) { _passAll = FAIL; }
+		//if (!test4()) { _passAll = FAIL; }
+		//if (!test5()) { _passAll = FAIL; }
+		//if (!test6()) { _passAll = FAIL; }
 
 		return _passAll;
 	}
@@ -240,7 +240,7 @@ class BMDriver extends TestDriver implements GlobalConst {
 					System.err.print ("*** Convert value failed \n");
 					status = FAIL;
 				}
-
+				System.out.println("Looking for pid :" + (pid.pid) + 99999);
 				if (status == OK) {
 					if (data != (pid.pid) + 99999) {
 						status = FAIL;

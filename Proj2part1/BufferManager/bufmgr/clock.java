@@ -38,17 +38,19 @@ public class clock {
 		return 1;
 	}
 	
-	static int leastRecentlyUsed(clock[] clockArray, int sizeOfArrays, int clockPointer){
+	static int leastRecentlyUsed(Descriptor[] des, clock[] clockArray, int sizeOfArrays, int clockPointer) throws BufferPoolExceededException{
 		int leastRecent;
+		int lastLeastRecent = -1;
 		do{
 			leastRecent = clockPointer;
 			for(int i = 0; i < sizeOfArrays; i++){
-				if(clockArray[i].getReferenceNumber() < leastRecent){
+				if(clockArray[i].getReferenceNumber() < leastRecent && clockArray[i].getReferenceNumber() > lastLeastRecent && clockArray[i].frameNumber != -1 && des[i].getPinCount() == 0){
 					leastRecent = clockArray[i].getReferenceNumber();
 				}
 			}
 			clockArray[leastRecent].setReplacementCandidateStatus(true);
-		}while(!clockArray[leastRecent].isReplacementCandidate());	
+			lastLeastRecent = leastRecent;
+		}while(!clockArray[leastRecent].isReplacementCandidate());
 		return clockArray[leastRecent].frameNumber;
 	}
 }

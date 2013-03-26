@@ -22,6 +22,8 @@ h(value) = (a*value+b) mod HTSIZE
 	
 	public int getFrameNumberFromBucket(PageId pageId){
 		// Look for page in the buffer pool
+		if(pageId == null)
+			System.out.println("gfhdfg");
 		int hash = getHash(pageId.pid);
 		Bucket bucky = Directory[hash];
 		while(bucky != null){
@@ -33,9 +35,9 @@ h(value) = (a*value+b) mod HTSIZE
 		return -1;
 	}
 	
-	int insertBucket(PageId pageNumber){
+	int insertBucket(int frameno ,PageId pageNumber){
 		int hash = getHash(pageNumber.pid);
-		Bucket bucky = new Bucket(pageNumber, hash);
+		Bucket bucky = new Bucket(pageNumber, frameno);
 		Bucket iter = Directory[hash];
 		if(Directory[hash]!= null){
 			while(iter.getNextBucket() != null){
